@@ -27,6 +27,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -62,7 +63,7 @@ fun SpeedPanel(speed: SpeedState, onGpsAction: () -> Unit, modifier: Modifier = 
                         if (live != null) animated.toInt().toString() else "--",
                         color = if (live != null) CockpitColors.White else CockpitColors.Muted,
                         fontSize = 104.sp, fontWeight = FontWeight.Light, letterSpacing = (-3).sp,
-                        fontFeatureSettings = "tnum" // fixed-width digits: no jitter as the number changes
+                        style = TextStyle(fontFeatureSettings = "tnum") // fixed-width digits: no jitter as it changes
                     )
                     Text("km/h", color = CockpitColors.OrangeSoft, fontSize = 18.sp, letterSpacing = 3.sp, fontWeight = FontWeight.Bold)
                 }

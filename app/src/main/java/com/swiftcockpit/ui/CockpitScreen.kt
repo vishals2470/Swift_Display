@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -251,7 +252,7 @@ private fun Clock() {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(date, color = CockpitColors.Muted, fontSize = 15.sp, letterSpacing = 1.5.sp, fontWeight = FontWeight.Medium)
         Spacer(Modifier.width(14.dp))
-        Text(time, color = CockpitColors.White, fontSize = 38.sp, fontWeight = FontWeight.Light, fontFeatureSettings = "tnum")
+        Text(time, color = CockpitColors.White, fontSize = 38.sp, fontWeight = FontWeight.Light, style = TextStyle(fontFeatureSettings = "tnum"))
     }
 }
 
