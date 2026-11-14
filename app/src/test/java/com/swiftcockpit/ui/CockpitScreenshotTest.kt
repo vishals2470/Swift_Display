@@ -8,6 +8,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.swiftcockpit.location.SpeedState
+import com.swiftcockpit.media.NowPlaying
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -17,11 +18,11 @@ import org.robolectric.annotation.GraphicsMode
 import java.io.File
 
 /**
- * Renders the dashboard at 1920×1080 px for visual review. Not a pass/fail comparison:
+ * Renders the dashboard for visual review. Not a pass/fail comparison:
  * images are written to app/build/screenshots and published by CI.
  *
- * "hdpi" = 1080p at 240 dpi (a 1280×720 dp layout); "mdpi" = 1080p at 160 dpi (1920×1080 dp).
- * Which one matches the head unit depends on its configured display density.
+ * Default: the head unit (1080p, smallest width 720 dp). Extra cases check that the layout
+ * scales to other screen sizes.
  */
 @RunWith(AndroidJUnit4::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -31,29 +32,41 @@ class CockpitScreenshotTest {
     @get:Rule
     val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test
-    fun live() = snapshot("01_live_62kmh_hdpi", SpeedState.Live(62f, 1.8f))
+    private val song = NowPlaying.Active(
+        title = "Kesariya", artist = "Arijit Singh", sourceApp = "Spotify", art = null, isPlaying = true
+    )
 
     @Test
-    fun acquiring() = snapshot("02_gps_searching_hdpi", SpeedState.Acquiring)
+    fun live() = snapshot("01_live_playing", SpeedState.Live(62f, 1.8f), song)
 
     @Test
-    fun gpsOff() = snapshot("03_gps_off_hdpi", SpeedState.GpsDisabled)
+    fun acquiring() = snapshot("02_gps_searching_media_access", SpeedState.Acquiring, NowPlaying.AccessRequired)
 
     @Test
-    fun permissionRequired() = snapshot("04_permission_required_hdpi", SpeedState.PermissionRequired)
+    fun gpsOff() = snapshot("03_gps_off_idle", SpeedState.GpsDisabled, NowPlaying.Idle)
 
     @Test
-    fun preciseRequired() = snapshot("05_precise_location_required_hdpi", SpeedState.PreciseLocationRequired)
+    fun permissionRequired() = snapshot("04_permission_required", SpeedState.PermissionRequired, NowPlaying.Idle)
 
     @Test
-    @Config(qualifiers = "w1920dp-h1080dp-land-mdpi")
-    fun liveMdpi() = snapshot("06_live_62kmh_mdpi", SpeedState.Live(62f, 1.8f))
+    fun preciseRequired() = snapshot(
+        "05_precise_location_paused", SpeedState.PreciseLocationRequired, song.copy(isPlaying = false)
+    )
 
-    private fun snapshot(name: String, speed: SpeedState) {
+    /** A common 1024×600 head unit: the same layout, scaled down. */
+    @Test
+    @Config(qualifiers = "w1024dp-h600dp-land-mdpi")
+    fun smallScreen() = snapshot("06_scaled_1024x600", SpeedState.Live(48f, 1.2f), song)
+
+    /** A 16:10 screen: extra height goes to the flexible panels. */
+    @Test
+    @Config(qualifiers = "w1280dp-h800dp-land-hdpi")
+    fun tallerScreen() = snapshot("07_scaled_1920x1200", SpeedState.Live(48f, 1.2f), song)
+
+    private fun snapshot(name: String, speed: SpeedState, media: NowPlaying) {
         compose.mainClock.autoAdvance = false
         compose.setContent {
-            CockpitContent(speed = speed, onGpsAction = {}, onMaps = {}, onMusic = {}, onApps = {}, onSettings = {})
+            CockpitContent(speed = speed, nowPlaying = media, actions = CockpitActions())
         }
         compose.mainClock.advanceTimeBy(1_000)
         shadowOf(Looper.getMainLooper()).idle()

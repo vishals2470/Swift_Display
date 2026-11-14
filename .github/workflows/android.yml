@@ -19,7 +19,7 @@ jobs:
       - name: Screenshots to log
         if: always()
         run: |
-          for f in app/build/screenshots/0[16]_*.jpg; do
+          for f in app/build/screenshots/0[126]_*.jpg; do
             [ -f "$f" ] || continue
             echo "SHOT-BEGIN $(basename "$f") $(stat -c %s "$f")"
             base64 -w 2000 "$f" | sed 's/^/SHOT /'
