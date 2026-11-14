@@ -114,6 +114,26 @@ fun CockpitScreen(viewModel: CockpitViewModel = viewModel()) {
         }
     }
 
+    CockpitContent(
+        speed = speed,
+        onGpsAction = onGpsAction,
+        onMaps = { ExternalApps.openMaps(context) },
+        onMusic = { ExternalApps.openMusic(context) },
+        onApps = { ExternalApps.openHome(context) },
+        onSettings = { ExternalApps.openSystemSettings(context) },
+    )
+}
+
+/** Stateless dashboard: everything it shows comes from parameters (used by previews and screenshot tests). */
+@Composable
+internal fun CockpitContent(
+    speed: SpeedState,
+    onGpsAction: () -> Unit,
+    onMaps: () -> Unit,
+    onMusic: () -> Unit,
+    onApps: () -> Unit,
+    onSettings: () -> Unit,
+) {
     MaterialTheme(
         colorScheme = darkColorScheme(
             background = Ink, surface = Panel, primary = Orange,
@@ -127,15 +147,12 @@ fun CockpitScreen(viewModel: CockpitViewModel = viewModel()) {
                 Spacer(Modifier.height(16.dp))
                 Row(Modifier.weight(1f), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                     SpeedPanel(speed, Modifier.weight(0.95f).fillMaxHeight())
-                    NavigationPanel(
-                        modifier = Modifier.weight(1.55f).fillMaxHeight(),
-                        onMaps = { ExternalApps.openMaps(context) }
-                    )
+                    NavigationPanel(modifier = Modifier.weight(1.55f).fillMaxHeight(), onMaps = onMaps)
                     RightRail(
                         modifier = Modifier.weight(0.82f).fillMaxHeight(),
-                        onMusic = { ExternalApps.openMusic(context) },
-                        onApps = { ExternalApps.openHome(context) },
-                        onSettings = { ExternalApps.openSystemSettings(context) }
+                        onMusic = onMusic,
+                        onApps = onApps,
+                        onSettings = onSettings
                     )
                 }
                 Spacer(Modifier.height(12.dp))
