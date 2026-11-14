@@ -73,6 +73,8 @@ class CockpitScreenshotTest {
         view.draw(Canvas(bitmap))
         val dir = File(System.getProperty("screenshots.dir") ?: "build/screenshots").apply { mkdirs() }
         File(dir, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-        File(dir, "$name.jpg").outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+        // Small preview copy for quick review in CI logs.
+        val preview = Bitmap.createScaledBitmap(bitmap, bitmap.width / 2, bitmap.height / 2, true)
+        File(dir, "$name.jpg").outputStream().use { preview.compress(Bitmap.CompressFormat.JPEG, 65, it) }
     }
 }
