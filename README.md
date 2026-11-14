@@ -1,45 +1,68 @@
-# SWIFT COCKPIT — Android source project
+# Swift Cockpit
 
-A native Kotlin + Jetpack Compose landscape dashboard MVP for a 10-inch Maruti Suzuki Swift head unit.
+A native Android (Kotlin + Jetpack Compose) driver dashboard for a 10-inch, 1080p landscape
+head unit in a Maruti Suzuki Swift. Live GPS speed, clock and quick hand-offs to maps, media
+and settings. Principle: **never show a number that isn't real and current.**
 
-## Current MVP features
-- Full-screen 10-inch landscape cockpit UI.
-- Dark graphite / carbon-inspired background, neon orange highlights and custom speed gauge.
-- GPS speed in km/h using Android location services (no OBD2 adapter required).
-- GPS permission and signal state.
-- Clock and date.
-- Navigation handoff to Google Maps (or installed map app).
-- Music app handoff.
-- Android home/app access and system settings shortcut.
-- No fabricated RPM, fuel, coolant or engine values.
+## Status
 
-## Requirements
-- Android Studio Ladybug or newer recommended.
-- JDK 17.
-- Android SDK Platform 35.
-- Gradle 8.9+ (Android Studio can download/configure Gradle).
+| Phase | Scope | State |
+|---|---|---|
+| 1 | Project foundation: Gradle module layout, wrapper, version catalog, CI | ✅ |
+| 2 | Reliable GPS speed: explicit states, stale-fix timeout, accuracy filter, tests | ✅ |
+| 3 | Dashboard UI rework for 1080p and at-a-glance readability | ⏳ |
+| 4 | Home-screen (launcher) role with app drawer and escape hatch | ⏳ |
+| 5 | Embedded live map (MapLibre + MapTiler), offline-tolerant | ⏳ |
+| 6 | Signed release build, install guide, road-test checklist | ⏳ |
 
-## Build APK
-1. Extract the ZIP.
-2. Open the `SWIFT_COCKPIT` folder in Android Studio.
-3. Allow Gradle sync and SDK installation.
-4. Connect the head unit by USB or copy the APK to it.
-5. Select **Build > Build Bundle(s) / APK(s) > Build APK(s)**.
-6. Install the generated APK from `app/build/outputs/apk/debug/app-debug.apk`.
+## Architecture
 
-Command-line build after Gradle is installed:
-`gradle assembleDebug`
+```
+app/src/main/java/com/swiftcockpit/
+├── MainActivity.kt          Immersive full-screen host, keeps the screen on
+├── location/
+│   ├── SpeedState.kt        Live / Acquiring / GpsDisabled / PermissionRequired / PreciseLocationRequired
+│   ├── SpeedEvaluator.kt    Pure logic: freshness (3 s), accuracy filter, parking jitter → unit-tested
+│   └── GpsSpeedSource.kt    LocationManager GPS_PROVIDER → Flow<SpeedState>
+├── system/ExternalApps.kt   Crash-safe hand-offs to Maps, music, settings
+└── ui/
+    ├── CockpitViewModel.kt  StateFlows; GPS runs only while the dashboard is visible
+    ├── CockpitScreen.kt     Compose UI
+    └── theme/
+```
 
-## First-run test
-1. Install and launch in landscape mode.
-2. Grant precise location permission.
-3. Enable device location and wait for a GPS fix outdoors.
-4. Compare the displayed speed with a trusted GPS speed app. GPS speed can lag briefly and may be unavailable indoors.
-5. Tap NAVIGATE, MEDIA, QUICK ACCESS and SYSTEM SETTINGS to verify app handoffs.
+**Why GPS_PROVIDER rather than the Play Services fused provider:** fused blends Wi-Fi/cell
+positions and smooths output, which suits "where am I" but not real-time ground speed, and it
+would make the app depend on Play Services.
 
-## Known scope / next iteration
-- This is source code for the first testable MVP, not a precompiled APK.
-- The central map area is a designed preview panel; the NAVIGATE action hands off to Google Maps. Embedded live maps can be added in a later iteration with a Google Maps API key or another map SDK.
-- Bluetooth ELM327 OBD2 support is intentionally not included in this first MVP. It should be implemented as an optional module and only show values actually returned by the ECU.
+**Speed rules** (`SpeedEvaluator`):
+- A reading older than 3 seconds is discarded and the display shows `--` (tunnel, garage, lost signal).
+- Fixes with no speed, or speed accuracy worse than ±5 m/s, are ignored.
+- Below 2 km/h reads as 0 to hide GPS jitter when parked.
+
+## Build
+
+Requirements: JDK 17, Android SDK Platform 35 (Android Studio Ladybug or newer handles both).
+
+```bash
+./gradlew testDebugUnitTest assembleDebug
+```
+
+The APK is written to `app/build/outputs/apk/debug/app-debug.apk`.
+
+Every push also builds on GitHub Actions; the debug APK is attached to each run as the
+`swift-cockpit-debug-apk` artifact.
+
+## First-run test on the head unit
+
+1. Install the APK and launch **Swift Cockpit**. Allow **precise** location when asked.
+2. Make sure device location is on. Outdoors, the status should go from `GPS SEARCH` to `GPS LOCK`.
+3. Compare speed with a trusted GPS speed app. Drive into a covered area: within ~3 s the speed should change to `--`.
+4. Tap NAVIGATE, MEDIA, ALL APPS and SYSTEM SETTINGS; return to the app and check it stays full screen.
+
+Do not interact with the screen while driving.
+
+## Not in scope yet
+
+- OBD2 (Bluetooth ELM327): planned as an optional module that only displays values the ECU actually returns.
 - No vehicle data is fabricated.
-- Test GPS speed accuracy and layout on the actual head unit before road use. Do not interact with the screen while driving.
