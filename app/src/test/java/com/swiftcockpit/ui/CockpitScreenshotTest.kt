@@ -1,15 +1,17 @@
 package com.swiftcockpit.ui
 
 import android.graphics.Bitmap
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.test.captureToImage
-import androidx.compose.ui.test.junit4.createComposeRule
-import androidx.compose.ui.test.onRoot
+import android.graphics.Canvas
+import android.os.Looper
+import android.view.View
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.swiftcockpit.location.SpeedState
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.Shadows.shadowOf
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
 import java.io.File
@@ -27,7 +29,7 @@ import java.io.File
 class CockpitScreenshotTest {
 
     @get:Rule
-    val compose = createComposeRule()
+    val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
     fun live() = snapshot("01_live_62kmh_hdpi", SpeedState.Live(62f, 1.8f))
@@ -54,7 +56,21 @@ class CockpitScreenshotTest {
             CockpitContent(speed = speed, onGpsAction = {}, onMaps = {}, onMusic = {}, onApps = {}, onSettings = {})
         }
         compose.mainClock.advanceTimeBy(1_000)
-        val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
+        shadowOf(Looper.getMainLooper()).idle()
+
+        // Draw the window directly; Compose's captureToImage() waits for a real frame and hangs
+        // under Robolectric.
+        val view = compose.activity.window.decorView
+        val metrics = compose.activity.resources.displayMetrics
+        if (view.width == 0 || view.height == 0) {
+            view.measure(
+                View.MeasureSpec.makeMeasureSpec(metrics.widthPixels, View.MeasureSpec.EXACTLY),
+                View.MeasureSpec.makeMeasureSpec(metrics.heightPixels, View.MeasureSpec.EXACTLY),
+            )
+            view.layout(0, 0, metrics.widthPixels, metrics.heightPixels)
+        }
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        view.draw(Canvas(bitmap))
         val dir = File(System.getProperty("screenshots.dir") ?: "build/screenshots").apply { mkdirs() }
         File(dir, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         File(dir, "$name.jpg").outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it) }

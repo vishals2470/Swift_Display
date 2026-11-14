@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -38,6 +40,10 @@ android {
         unitTests.isReturnDefaultValues = true
         unitTests.isIncludeAndroidResources = true
         unitTests.all {
+            it.testLogging {
+                events("failed")
+                exceptionFormat = TestExceptionFormat.FULL
+            }
             it.systemProperty("screenshots.dir", layout.buildDirectory.dir("screenshots").get().asFile.path)
         }
     }
